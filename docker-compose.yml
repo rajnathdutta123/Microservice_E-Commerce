@@ -1,0 +1,136 @@
+version: '4'
+
+services:
+  mongodb:
+    image: 'bitnami/mongodb:latest'
+    container_name: mongo
+    ports:
+      - 27017:27017
+    environment:
+      MONGODB_ROOT_USER: 'admin'
+      MONGODB_ROOT_PASSWORD: 'password'
+
+    volumes:
+      - './mongodb_data:/bitnami/mongodb'
+      - './mongodb_init:/docker-entrypoint-initdb.d'
+
+  mysql:
+    image: 'bitnami/mysql:latest'
+    container_name: mysql
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_USER: root
+      MYSQL_ROOT_PASSWORD: raj123
+
+    volumes:
+      - './mysql_data:/bitnami/mysql'
+      - './mysql_init:/docker-entrypoint-initdb.d'
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - 2181:2181
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    ports:
+      - 9092:9092
+      - 29092:29092
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - "8086:8086"
+    depends_on:
+      - kafka
+
+    environment:
+      KAFKA_CLUSTERS_NAME: local
+      KAFKA_CLUSTERS_bootstrapServers: kafka:29092
+      #      KAFKA_CLUSTERS_schemaRegistry: http:schema-registry:8081
+      DYNAMIC_CONFIG_ENABLE: 'true'
+
+
+  api-gateway:
+    image: api-gateway:latest
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    ports:
+      - "9000:9000"
+    environment:
+      - JAVA_OPTS=-Xms256m -Xmx512m
+
+  product-service:
+    build:
+      context: ./product-service
+      dockerfile: Dockerfile
+    container_name: product-service
+    depends_on:
+      - mongodb
+      - api-gateway
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_DATA_MONGODB_URI=mongodb://admin:password@mongo:27017/admin?retryWrites=true&loadBalanced=false&connectTimeoutMS=10000&authSource=admin&authMechanism=SCRAM-SHA-1
+      - SERVER_PORT=8081
+
+  order-service:
+    build:
+      context: ./order-service
+      dockerfile: Dockerfile
+    container_name: order-service
+    depends_on:
+      - mysql
+      - api-gateway
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=com.mysql.cj.jdbc.Driver
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/order_service
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=raj123
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.MySQL8Dialect
+      - SERVER_PORT=8082
+
+
+  inventory-service:
+    build:
+      context: ./inventory-service
+      dockerfile: Dockerfile
+    container_name: inventory-service
+    depends_on:
+      - mysql
+      - api-gateway
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=com.mysql.cj.jdbc.Driver
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/inventory_service
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=raj123
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.MySQL8Dialect
+      - SERVER_PORT=8083
+
+
+
+volumes:
+  mongodb_data:
+  mysql_data:

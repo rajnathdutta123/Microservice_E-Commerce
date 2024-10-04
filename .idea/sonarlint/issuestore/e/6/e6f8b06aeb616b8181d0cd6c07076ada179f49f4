@@ -1,0 +1,8 @@
+
+“	java:S117^"QRename this local variable to match the regular expression '^[a-z][a-zA-Z0-9]*$'.(Àé°Ó8°è”Úœ2J$9df6297e-dcb5-4d53-b1c1-a9987da98526
+k
+java:S5411J"(Use a primitive boolean expression here.(²—Ë‘8µè”Úœ2J$deebb3ed-c5d9-4a11-be0b-2b7b5146a651
+½
+java:S6204,"zReplace this usage of 'Stream.collect(Collectors.toList())' with 'Stream.toList()' and ensure that the list is unmodified.(ª™¨¹8Ûè”Úœ2J$7855605e-b167-4708-8fe1-70f034b8b882
+½
+java:S6204["zReplace this usage of 'Stream.collect(Collectors.toList())' with 'Stream.toList()' and ensure that the list is unmodified.(¸¡äö8éè”Úœ2J$5b8d84e5-03ce-47aa-853b-18dd1929cde2
